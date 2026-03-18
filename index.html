@@ -259,7 +259,6 @@
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script>
     const NORMAL_WIDTH = 520;
     const FOUR_COL_WIDTH = 284;
@@ -281,6 +280,25 @@
     const defaultVariantInputs = document.querySelectorAll('input[name="defaultVariant"]');
     const wrap = document.querySelector('.wrap');
     const TIP_HTML = 'Tip: you can still pass one value with <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal</code> or multiple lines with <code>?texts=First%0ASecond&amp;styles=Blue,White&amp;sizes=Normal,4-COL</code>. For a UI-free asset view, use <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal&amp;view=asset</code>. Downloads are named like <code>CTA_your-text.png</code>, with duplicates becoming <code>CTA_your-text_1.png</code> and so on.';
+    const CRC32_TABLE = (() => {
+      const table = new Uint32Array(256);
+
+      for (let index = 0; index < 256; index += 1) {
+        let value = index;
+
+        for (let bit = 0; bit < 8; bit += 1) {
+          if ((value & 1) === 1) {
+            value = 0xEDB88320 ^ (value >>> 1);
+          } else {
+            value >>>= 1;
+          }
+        }
+
+        table[index] = value >>> 0;
+      }
+
+      return table;
+    })();
     let assetState = [];
 
     function getQueryParams() {
@@ -562,6 +580,131 @@
       });
     }
 
+    function crc32(bytes) {
+      let crc = 0xFFFFFFFF;
+
+      for (let index = 0; index < bytes.length; index += 1) {
+        crc = CRC32_TABLE[(crc ^ bytes[index]) & 0xFF] ^ (crc >>> 8);
+      }
+
+      return (crc ^ 0xFFFFFFFF) >>> 0;
+    }
+
+    function makeUint16LE(value) {
+      return new Uint8Array([
+        value & 0xFF,
+        (value >>> 8) & 0xFF
+      ]);
+    }
+
+    function makeUint32LE(value) {
+      return new Uint8Array([
+        value & 0xFF,
+        (value >>> 8) & 0xFF,
+        (value >>> 16) & 0xFF,
+        (value >>> 24) & 0xFF
+      ]);
+    }
+
+    function getZipTimestamp(date) {
+      const year = Math.max(date.getFullYear(), 1980);
+      const dosTime = ((date.getHours() & 0x1F) << 11)
+        | ((date.getMinutes() & 0x3F) << 5)
+        | Math.floor(date.getSeconds() / 2);
+      const dosDate = (((year - 1980) & 0x7F) << 9)
+        | (((date.getMonth() + 1) & 0x0F) << 5)
+        | (date.getDate() & 0x1F);
+
+      return { dosTime, dosDate };
+    }
+
+    function joinUint8Arrays(chunks) {
+      const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+      const output = new Uint8Array(totalLength);
+      let offset = 0;
+
+      chunks.forEach((chunk) => {
+        output.set(chunk, offset);
+        offset += chunk.length;
+      });
+
+      return output;
+    }
+
+    async function createZipBlob(files) {
+      const encoder = new TextEncoder();
+      const localFileParts = [];
+      const centralDirectoryParts = [];
+      let localOffset = 0;
+      const createdAt = getZipTimestamp(new Date());
+
+      for (const file of files) {
+        const nameBytes = encoder.encode(file.name);
+        const dataBytes = new Uint8Array(await file.blob.arrayBuffer());
+        const checksum = crc32(dataBytes);
+
+        const localHeader = joinUint8Arrays([
+          makeUint32LE(0x04034B50),
+          makeUint16LE(20),
+          makeUint16LE(0),
+          makeUint16LE(0),
+          makeUint16LE(createdAt.dosTime),
+          makeUint16LE(createdAt.dosDate),
+          makeUint32LE(checksum),
+          makeUint32LE(dataBytes.length),
+          makeUint32LE(dataBytes.length),
+          makeUint16LE(nameBytes.length),
+          makeUint16LE(0),
+          nameBytes,
+          dataBytes
+        ]);
+
+        const centralHeader = joinUint8Arrays([
+          makeUint32LE(0x02014B50),
+          makeUint16LE(20),
+          makeUint16LE(20),
+          makeUint16LE(0),
+          makeUint16LE(0),
+          makeUint16LE(createdAt.dosTime),
+          makeUint16LE(createdAt.dosDate),
+          makeUint32LE(checksum),
+          makeUint32LE(dataBytes.length),
+          makeUint32LE(dataBytes.length),
+          makeUint16LE(nameBytes.length),
+          makeUint16LE(0),
+          makeUint16LE(0),
+          makeUint16LE(0),
+          makeUint16LE(0),
+          makeUint32LE(0),
+          makeUint32LE(localOffset),
+          nameBytes
+        ]);
+
+        localFileParts.push(localHeader);
+        centralDirectoryParts.push(centralHeader);
+        localOffset += localHeader.length;
+      }
+
+      const centralDirectory = joinUint8Arrays(centralDirectoryParts);
+      const localFiles = joinUint8Arrays(localFileParts);
+      const endOfCentralDirectory = joinUint8Arrays([
+        makeUint32LE(0x06054B50),
+        makeUint16LE(0),
+        makeUint16LE(0),
+        makeUint16LE(files.length),
+        makeUint16LE(files.length),
+        makeUint32LE(centralDirectory.length),
+        makeUint32LE(localFiles.length),
+        makeUint16LE(0)
+      ]);
+
+      return new Blob([
+        localFiles,
+        centralDirectory,
+        endOfCentralDirectory
+      ], { type: 'application/zip' });
+    }
+
     function createPreviewCard(asset, filename) {
       const colors = getStyleColors(asset.style);
       const card = document.createElement('article');
@@ -707,24 +850,19 @@
         return;
       }
 
-      if (!window.JSZip) {
-        window.alert('ZIP export is unavailable because JSZip did not load.');
-        return;
-      }
-
       const originalLabel = downloadBtn.textContent;
       downloadBtn.disabled = true;
       downloadBtn.textContent = 'Preparing ZIP...';
 
       try {
-        const zip = new window.JSZip();
+        const files = [];
 
         for (const asset of assets) {
           const blob = await canvasToBlob(asset.canvas);
-          zip.file(asset.filename, blob);
+          files.push({ name: asset.filename, blob });
         }
 
-        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const zipBlob = await createZipBlob(files);
         downloadBlob(zipBlob, 'CTA_assets.zip');
       } catch (error) {
         window.alert('Unable to create ZIP file.');

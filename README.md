@@ -80,7 +80,7 @@ CTA_your-text_2.png
 ## Technical Notes
 
 - This is a single-file app with HTML, CSS, and JavaScript in [index.html](./index.html).
-- ZIP export depends on JSZip loaded from a CDN.
+- ZIP export is handled directly in the browser with no external library dependency.
 - No build step or install process is required.
 
 ## Run Locally
@@ -94,4 +94,3 @@ Because this is a static app, you can use either approach:
 
 - Long text is truncated with an ellipsis to fit the asset width
 - Asset-only mode renders only the first generated asset
-- ZIP export requires JSZip to load successfully in the browser
