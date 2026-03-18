@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Email CTA PNG Asset Generator</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --button: #2563eb;
+      --button-hover: #1d4ed8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, var(--bg), #020617);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      padding: 24px;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 720px;
+      background: rgba(17, 24, 39, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+
+    p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .actionRow {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, max-content));
+      gap: 10px;
+      justify-content: start;
+    }
+
+    .previewGrid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 10px;
+    }
+
+    .previewCard {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.08);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .previewCanvasWrap {
+      display: grid;
+      place-items: center;
+      padding: 10px;
+      border-radius: 12px;
+      overflow: auto;
+    }
+
+    .previewMeta {
+      display: grid;
+      gap: 6px;
+    }
+
+    .assetStyleRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .assetStyleLabel {
+      font-size: 12px;
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .assetStyleSelect {
+      min-width: 110px;
+      height: 36px;
+      border-radius: 9px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: #ffffff;
+      color: #0f172a;
+      padding: 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .previewName {
+      font-size: 13px;
+      font-weight: 600;
+      color: #0f172a;
+      word-break: break-word;
+    }
+
+    .previewLabel {
+      font-size: 12px;
+      color: #334155;
+      word-break: break-word;
+    }
+
+    .emptyState {
+      width: 100%;
+      padding: 28px 16px;
+      border-radius: 14px;
+      border: 1px dashed rgba(148, 163, 184, 0.35);
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .styleRow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .styleRow label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      flex-wrap: nowrap;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 132px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 12px;
+      font-size: 14px;
+      line-height: 1.45;
+      outline: none;
+      resize: vertical;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    textarea:focus {
+      border-color: rgba(96, 165, 250, 0.7);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    }
+
+    button {
+      height: 42px;
+      border: 0;
+      border-radius: 10px;
+      padding: 0 14px;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+      background: var(--button);
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--button-hover);
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.7;
+    }
+
+    .preview {
+      background: #ffffff;
+      border: 1px dashed rgba(148, 163, 184, 0.2);
+      border-radius: 14px;
+      padding: 22px;
+      display: block;
+      overflow: auto;
+    }
+
+    canvas {
+      image-rendering: auto;
+      display: block;
+      background: transparent;
+      width: auto;
+      max-width: 100%;
+      height: 54px;
+    }
+
+    .meta {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Email CTA PNG Asset Generator</h1>
+    <p>
+      Creates CTA PNGs in Normal (520×108) or 4-COL (284×108). Add one line per asset, choose the style and width on each generated card, then download the whole batch as a ZIP.
+    </p>
+
+    <div class="controls">
+      <textarea id="textInput" placeholder="Add one CTA per line" maxlength="1200">Sample Text</textarea>
+      <div class="actionRow">
+        <button id="downloadBtn">Download ZIP</button>
+      </div>
+    </div>
+
+    <div class="styleRow">
+      <span>Default style for new lines:</span>
+      <label><input type="radio" name="defaultStyle" value="Blue" checked /> Blue</label>
+      <label><input type="radio" name="defaultStyle" value="White" /> White</label>
+    </div>
+
+    <div class="styleRow">
+      <span>Default width for new lines:</span>
+      <label><input type="radio" name="defaultVariant" value="Normal" checked /> Normal</label>
+      <label><input type="radio" name="defaultVariant" value="4-COL" /> 4-COL</label>
+    </div>
+
+    <div class="preview" id="preview">
+      <div class="previewGrid" id="previewGrid"></div>
+    </div>
+
+    <div class="meta" id="meta">
+      Tip: you can still pass one value with <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal</code> or multiple lines with <code>?texts=First%0ASecond&amp;styles=Blue,White&amp;sizes=Normal,4-COL</code>. For a UI-free asset view, use <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal&amp;view=asset</code>. Downloads are named like <code>CTA_your-text.png</code>, with duplicates becoming <code>CTA_your-text_1.png</code> and so on.
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    const NORMAL_WIDTH = 520;
+    const FOUR_COL_WIDTH = 284;
+    const HEIGHT = 108;
+    const PREVIEW_HEIGHT = 54;
+    const RADIUS = 20;
+    const BLUE_BG = '#00005f';
+    const BLUE_TEXT = '#FFFFFF';
+    const WHITE_BG = '#FFFFFF';
+    const WHITE_TEXT = '#00005f';
+    const FONT = 'normal 32px Arial, Helvetica, sans-serif';
+
+    const textInput = document.getElementById('textInput');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const preview = document.getElementById('preview');
+    const previewGrid = document.getElementById('previewGrid');
+    const meta = document.getElementById('meta');
+    const defaultStyleInputs = document.querySelectorAll('input[name="defaultStyle"]');
+    const defaultVariantInputs = document.querySelectorAll('input[name="defaultVariant"]');
+    const wrap = document.querySelector('.wrap');
+    const TIP_HTML = 'Tip: you can still pass one value with <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal</code> or multiple lines with <code>?texts=First%0ASecond&amp;styles=Blue,White&amp;sizes=Normal,4-COL</code>. For a UI-free asset view, use <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal&amp;view=asset</code>. Downloads are named like <code>CTA_your-text.png</code>, with duplicates becoming <code>CTA_your-text_1.png</code> and so on.';
+    let assetState = [];
+
+    function getQueryParams() {
+      return new URLSearchParams(window.location.search);
+    }
+
+    function getTextFromURL() {
+      const params = getQueryParams();
+      return params.get('text') || '';
+    }
+
+    function getTextsFromURL() {
+      const params = getQueryParams();
+      const texts = params.get('texts');
+
+      if (texts) {
+        return texts
+          .split(/\r?\n/)
+          .map((entry) => entry.trim())
+          .filter(Boolean);
+      }
+
+      const singleText = getTextFromURL().trim();
+      return singleText ? [singleText] : [];
+    }
+
+    function getStyleFromURL() {
+      const params = getQueryParams();
+      return normalizeStyle(params.get('style'));
+    }
+
+    function getStylesFromURL() {
+      const params = getQueryParams();
+      const styles = params.get('styles');
+
+      if (!styles) {
+        return [];
+      }
+
+      return styles
+        .split(/[\n,]/)
+        .map((style) => normalizeStyle(style.trim()));
+    }
+
+    function getVariantFromURL() {
+      const params = getQueryParams();
+      return normalizeVariant(params.get('size'));
+    }
+
+    function getVariantsFromURL() {
+      const params = getQueryParams();
+      const sizes = params.get('sizes');
+
+      if (!sizes) {
+        return [];
+      }
+
+      return sizes
+        .split(/[\n,]/)
+        .map((size) => normalizeVariant(size.trim()));
+    }
+
+    function isAssetView() {
+      const params = getQueryParams();
+      return params.get('view') === 'asset';
+    }
+
+    function roundRect(ctx, x, y, width, height, radius) {
+      const r = Math.min(radius, height / 2, width / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + width - r, y);
+      ctx.arcTo(x + width, y, x + width, y + r, r);
+      ctx.lineTo(x + width, y + height - r);
+      ctx.arcTo(x + width, y + height, x + width - r, y + height, r);
+      ctx.lineTo(x + r, y + height);
+      ctx.arcTo(x, y + height, x, y + height - r, r);
+      ctx.lineTo(x, y + r);
+      ctx.arcTo(x, y, x + r, y, r);
+      ctx.closePath();
+    }
+
+    function fitText(text, maxWidth) {
+      let output = text;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.font = FONT;
+
+      if (ctx.measureText(output).width <= maxWidth) return output;
+
+      while (output.length > 0 && ctx.measureText(output + '…').width > maxWidth) {
+        output = output.slice(0, -1);
+      }
+
+      return output.length ? output + '…' : '';
+    }
+
+    function getEntries() {
+      return textInput.value
+        .split(/\r?\n/)
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+    }
+
+    function normalizeStyle(style) {
+      return style === 'White' ? 'White' : 'Blue';
+    }
+
+    function normalizeVariant(variant) {
+      return variant === '4-COL' ? '4-COL' : 'Normal';
+    }
+
+    function getAssetDimensions(variant) {
+      return {
+        width: normalizeVariant(variant) === '4-COL' ? FOUR_COL_WIDTH : NORMAL_WIDTH,
+        height: HEIGHT
+      };
+    }
+
+    function getSelectedDefaultStyle() {
+      const selected = document.querySelector('input[name="defaultStyle"]:checked');
+      return selected ? selected.value : 'Blue';
+    }
+
+    function setSelectedDefaultStyle(style) {
+      const normalizedStyle = normalizeStyle(style);
+      defaultStyleInputs.forEach((input) => {
+        input.checked = input.value === normalizedStyle;
+      });
+    }
+
+    function getSelectedDefaultVariant() {
+      const selected = document.querySelector('input[name="defaultVariant"]:checked');
+      return selected ? selected.value : 'Normal';
+    }
+
+    function setSelectedDefaultVariant(variant) {
+      const normalizedVariant = normalizeVariant(variant);
+      defaultVariantInputs.forEach((input) => {
+        input.checked = input.value === normalizedVariant;
+      });
+    }
+
+    function getStyleColors(style) {
+      const selectedStyle = normalizeStyle(style);
+
+      if (selectedStyle === 'White') {
+        return {
+          bg: WHITE_BG,
+          text: WHITE_TEXT,
+          previewBg: '#000000'
+        };
+      }
+
+      return {
+        bg: BLUE_BG,
+        text: BLUE_TEXT,
+        previewBg: '#ffffff'
+      };
+    }
+
+    function drawAsset(canvas, text, style, variant) {
+      const colors = getStyleColors(style);
+      const dimensions = getAssetDimensions(variant);
+      const ctx = canvas.getContext('2d');
+      canvas.width = dimensions.width;
+      canvas.height = dimensions.height;
+      ctx.clearRect(0, 0, dimensions.width, dimensions.height);
+
+      roundRect(ctx, 0, 0, dimensions.width, dimensions.height, RADIUS);
+      ctx.fillStyle = colors.bg;
+      ctx.fill();
+
+      const safeText = fitText(text.trim(), dimensions.width - 24);
+      ctx.font = FONT;
+      ctx.fillStyle = colors.text;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(safeText, dimensions.width / 2, dimensions.height / 2 + 0.5);
+
+      return colors;
+    }
+
+    function syncAssetState() {
+      const entries = getEntries();
+      const defaultStyle = getSelectedDefaultStyle();
+      const defaultVariant = getSelectedDefaultVariant();
+      assetState = entries.map((text, index) => {
+        const existingAsset = assetState[index];
+        const style = existingAsset ? existingAsset.style : defaultStyle;
+        const variant = existingAsset ? existingAsset.variant : defaultVariant;
+        return {
+          text,
+          style: normalizeStyle(style),
+          variant: normalizeVariant(variant)
+        };
+      });
+
+      return assetState;
+    }
+
+    function sanitizeFilename(text) {
+      const normalized = text.normalize('NFD');
+      let cleaned = '';
+      let previousWasHyphen = false;
+
+      for (const char of normalized) {
+        const code = char.charCodeAt(0);
+        const isCombiningMark = code >= 768 && code <= 879;
+        const isUpper = code >= 65 && code <= 90;
+        const isLower = code >= 97 && code <= 122;
+        const isDigit = code >= 48 && code <= 57;
+        const isSpace = char === ' ';
+        const isHyphen = char === '-';
+
+        if (isCombiningMark) {
+          continue;
+        }
+
+        if (isUpper || isLower || isDigit) {
+          cleaned += char;
+          previousWasHyphen = false;
+          continue;
+        }
+
+        if (isSpace || isHyphen) {
+          if (!previousWasHyphen && cleaned.length > 0) {
+            cleaned += '-';
+            previousWasHyphen = true;
+          }
+        }
+      }
+
+      if (cleaned.endsWith('-')) {
+        cleaned = cleaned.slice(0, -1);
+      }
+
+      return cleaned || 'asset';
+    }
+
+    function buildFilename(text, counts) {
+      const sanitizedText = sanitizeFilename(text.trim());
+      const currentCount = counts.get(sanitizedText) || 0;
+      counts.set(sanitizedText, currentCount + 1);
+
+      if (currentCount === 0) {
+        return 'CTA_' + sanitizedText + '.png';
+      }
+
+      return 'CTA_' + sanitizedText + '_' + currentCount + '.png';
+    }
+
+    function triggerDownload(canvas, filename) {
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = filename;
+      link.click();
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function canvasToBlob(canvas) {
+      return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+            return;
+          }
+
+          reject(new Error('Unable to generate PNG blob.'));
+        }, 'image/png');
+      });
+    }
+
+    function createPreviewCard(asset, filename) {
+      const colors = getStyleColors(asset.style);
+      const card = document.createElement('article');
+      card.className = 'previewCard';
+
+      const canvasWrap = document.createElement('div');
+      canvasWrap.className = 'previewCanvasWrap';
+      canvasWrap.style.background = colors.previewBg;
+
+      const canvas = document.createElement('canvas');
+      canvas.setAttribute('aria-label', 'Generated PNG preview for ' + asset.text);
+      canvas.style.height = PREVIEW_HEIGHT + 'px';
+      canvas.style.width = 'auto';
+      drawAsset(canvas, asset.text, asset.style, asset.variant);
+      canvasWrap.appendChild(canvas);
+
+      const previewMeta = document.createElement('div');
+      previewMeta.className = 'previewMeta';
+
+      const name = document.createElement('div');
+      name.className = 'previewName';
+      name.textContent = filename;
+
+      const label = document.createElement('div');
+      label.className = 'previewLabel';
+      label.textContent = asset.text;
+
+      const assetStyleRow = document.createElement('div');
+      assetStyleRow.className = 'assetStyleRow';
+
+      const assetStyleLabel = document.createElement('div');
+      assetStyleLabel.className = 'assetStyleLabel';
+      assetStyleLabel.textContent = 'Style';
+
+      const styleSelect = document.createElement('select');
+      styleSelect.className = 'assetStyleSelect';
+      styleSelect.setAttribute('aria-label', 'Choose style for ' + asset.text);
+
+      ['Blue', 'White'].forEach((style) => {
+        const option = document.createElement('option');
+        option.value = style;
+        option.textContent = style;
+        option.selected = style === asset.style;
+        styleSelect.appendChild(option);
+      });
+
+      styleSelect.addEventListener('change', () => {
+        asset.style = normalizeStyle(styleSelect.value);
+        const nextColors = drawAsset(canvas, asset.text, asset.style, asset.variant);
+        canvasWrap.style.background = nextColors.previewBg;
+      });
+
+      assetStyleRow.appendChild(assetStyleLabel);
+      assetStyleRow.appendChild(styleSelect);
+
+      const assetVariantRow = document.createElement('div');
+      assetVariantRow.className = 'assetStyleRow';
+
+      const assetVariantLabel = document.createElement('div');
+      assetVariantLabel.className = 'assetStyleLabel';
+      assetVariantLabel.textContent = 'Width';
+
+      const variantSelect = document.createElement('select');
+      variantSelect.className = 'assetStyleSelect';
+      variantSelect.setAttribute('aria-label', 'Choose width for ' + asset.text);
+
+      ['Normal', '4-COL'].forEach((variant) => {
+        const option = document.createElement('option');
+        option.value = variant;
+        option.textContent = variant;
+        option.selected = variant === asset.variant;
+        variantSelect.appendChild(option);
+      });
+
+      variantSelect.addEventListener('change', () => {
+        asset.variant = normalizeVariant(variantSelect.value);
+        const nextColors = drawAsset(canvas, asset.text, asset.style, asset.variant);
+        canvasWrap.style.background = nextColors.previewBg;
+      });
+
+      assetVariantRow.appendChild(assetVariantLabel);
+      assetVariantRow.appendChild(variantSelect);
+
+      const itemDownloadBtn = document.createElement('button');
+      itemDownloadBtn.type = 'button';
+      itemDownloadBtn.textContent = 'Download PNG';
+      itemDownloadBtn.addEventListener('click', () => triggerDownload(canvas, filename));
+
+      previewMeta.appendChild(name);
+      previewMeta.appendChild(label);
+      previewMeta.appendChild(assetStyleRow);
+      previewMeta.appendChild(assetVariantRow);
+      previewMeta.appendChild(itemDownloadBtn);
+
+      card.appendChild(canvasWrap);
+      card.appendChild(previewMeta);
+
+      return { card, canvas, filename };
+    }
+
+    function updateMeta(count) {
+      const label = count === 1 ? '1 PNG ready.' : count + ' PNGs ready.';
+      meta.innerHTML = label + ' ' + TIP_HTML;
+    }
+
+    function renderAll() {
+      const assetsToRender = syncAssetState();
+      const counts = new Map();
+
+      preview.style.background = '#ffffff';
+      previewGrid.replaceChildren();
+
+      if (assetsToRender.length === 0) {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'emptyState';
+        emptyState.textContent = 'Add at least one line to generate PNG previews.';
+        previewGrid.appendChild(emptyState);
+        updateMeta(0);
+        return [];
+      }
+
+      const assets = assetsToRender.map((asset) => {
+        const filename = buildFilename(asset.text, counts);
+        const previewAsset = createPreviewCard(asset, filename);
+        previewGrid.appendChild(previewAsset.card);
+        return {
+          text: asset.text,
+          style: asset.style,
+          variant: asset.variant,
+          canvas: previewAsset.canvas,
+          filename: previewAsset.filename
+        };
+      });
+
+      updateMeta(assets.length);
+      return assets;
+    }
+
+    async function downloadAllPNGs() {
+      const assets = renderAll();
+
+      if (assets.length === 0) {
+        return;
+      }
+
+      if (!window.JSZip) {
+        window.alert('ZIP export is unavailable because JSZip did not load.');
+        return;
+      }
+
+      const originalLabel = downloadBtn.textContent;
+      downloadBtn.disabled = true;
+      downloadBtn.textContent = 'Preparing ZIP...';
+
+      try {
+        const zip = new window.JSZip();
+
+        for (const asset of assets) {
+          const blob = await canvasToBlob(asset.canvas);
+          zip.file(asset.filename, blob);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        downloadBlob(zipBlob, 'CTA_assets.zip');
+      } catch (error) {
+        window.alert('Unable to create ZIP file.');
+      } finally {
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = originalLabel;
+      }
+    }
+
+    function applyAssetView(asset) {
+      const colors = getStyleColors(asset.style);
+      const dimensions = getAssetDimensions(asset.variant);
+      document.body.style.padding = '0';
+      document.body.style.margin = '0';
+      document.body.style.minHeight = '100vh';
+      document.body.style.display = 'grid';
+      document.body.style.placeItems = 'center';
+      document.body.style.background = colors.previewBg;
+      wrap.style.display = 'none';
+      preview.style.display = 'grid';
+      preview.style.padding = '0';
+      preview.style.border = '0';
+      preview.style.borderRadius = '0';
+      preview.style.background = colors.previewBg;
+      preview.style.boxShadow = 'none';
+      previewGrid.replaceChildren();
+      document.body.appendChild(preview);
+      asset.canvas.style.width = dimensions.width + 'px';
+      asset.canvas.style.height = dimensions.height + 'px';
+      preview.appendChild(asset.canvas);
+    }
+
+    const initialEntries = getTextsFromURL();
+    const initialStyles = getStylesFromURL();
+    const initialVariants = getVariantsFromURL();
+    const initialText = initialEntries.length ? initialEntries.join('\n') : textInput.value;
+    const initialStyle = getStyleFromURL();
+    const initialVariant = getVariantFromURL();
+    textInput.value = initialText;
+    setSelectedDefaultStyle(initialStyle);
+    setSelectedDefaultVariant(initialVariant);
+    assetState = (initialEntries.length ? initialEntries : getEntries()).map((text, index) => ({
+      text,
+      style: normalizeStyle(initialStyles[index] || initialStyle),
+      variant: normalizeVariant(initialVariants[index] || initialVariant)
+    }));
+    const initialAssets = renderAll();
+
+    if (isAssetView()) {
+      const [firstAsset] = initialAssets;
+
+      if (firstAsset) {
+        applyAssetView(firstAsset);
+      }
+    }
+
+    textInput.addEventListener('input', () => renderAll());
+    downloadBtn.addEventListener('click', () => {
+      downloadAllPNGs();
+    });
+    defaultStyleInputs.forEach((input) => {
+      input.addEventListener('change', () => renderAll());
+    });
+    defaultVariantInputs.forEach((input) => {
+      input.addEventListener('change', () => renderAll());
+    });
+  </script>
+</body>
+</html>
