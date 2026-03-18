@@ -90,6 +90,16 @@ Because this is a static app, you can use either approach:
 - Open [index.html](./index.html) directly in a browser
 - Serve the folder with any simple static server if you prefer a local URL
 
+## Hosted Preview
+
+If you want to preview directly from GitHub, prefer a raw-file URL instead of the GitHub `blob` page URL. For example:
+
+```text
+https://htmlpreview.github.io/?https://raw.githubusercontent.com/stulowndes/Aldi-Email-CTA-Generator/main/index.html
+```
+
+If a preview service appears to serve an older cached version, add a cache-busting query string such as `?v=20260318` to the raw file URL.
+
 ## Limitations
 
 - Long text is truncated with an ellipsis to fit the asset width
