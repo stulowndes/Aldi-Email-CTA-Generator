@@ -158,6 +158,19 @@
       flex-wrap: nowrap;
     }
 
+    .textField {
+      width: 100%;
+      height: 44px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 0 12px;
+      font-size: 14px;
+      outline: none;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
     textarea {
       width: 100%;
       min-height: 132px;
@@ -173,6 +186,7 @@
       font-family: Arial, Helvetica, sans-serif;
     }
 
+    .textField:focus,
     textarea:focus {
       border-color: rgba(96, 165, 250, 0.7);
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
@@ -228,10 +242,11 @@
   <div class="wrap">
     <h1>Email CTA PNG Asset Generator</h1>
     <p>
-      Creates CTA PNGs in Normal (520×108) or 4-COL (284×108). Add one line per asset, choose the style and width on each generated card, then download the whole batch as a ZIP.
+      Creates CTA PNGs in Normal (520×108), 3-COL (384×108), or 4-COL (284×108). Add one line per asset, choose the style and width on each generated card, then download the whole batch as a ZIP.
     </p>
 
     <div class="controls">
+      <input id="emailNameInput" class="textField" type="text" placeholder="Email name (optional)" maxlength="120" />
       <textarea id="textInput" placeholder="Add one CTA per line" maxlength="1200">Sample Text</textarea>
       <div class="actionRow">
         <button id="downloadBtn">Download ZIP</button>
@@ -247,6 +262,7 @@
     <div class="styleRow">
       <span>Default width for new lines:</span>
       <label><input type="radio" name="defaultVariant" value="Normal" checked /> Normal</label>
+      <label><input type="radio" name="defaultVariant" value="3-COL" /> 3-COL</label>
       <label><input type="radio" name="defaultVariant" value="4-COL" /> 4-COL</label>
     </div>
 
@@ -255,12 +271,13 @@
     </div>
 
     <div class="meta" id="meta">
-      Tip: you can still pass one value with <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal</code> or multiple lines with <code>?texts=First%0ASecond&amp;styles=Blue,White&amp;sizes=Normal,4-COL</code>. For a UI-free asset view, use <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal&amp;view=asset</code>. Downloads are named like <code>CTA_your-text.png</code>, with duplicates becoming <code>CTA_your-text_1.png</code> and so on.
+      Tip: you can still pass one value with <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal</code> or multiple lines with <code>?texts=First%0ASecond&amp;styles=Blue,White&amp;sizes=Normal,3-COL</code>. For a UI-free asset view, use <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal&amp;view=asset</code>. Downloads are named like <code>CTA_your-text.png</code> or <code>email-name_CTA_your-text.png</code>, with duplicates becoming <code>_1</code>, <code>_2</code>, and so on.
     </div>
   </div>
 
   <script>
     const NORMAL_WIDTH = 520;
+    const THREE_COL_WIDTH = 384;
     const FOUR_COL_WIDTH = 284;
     const HEIGHT = 108;
     const PREVIEW_HEIGHT = 54;
@@ -272,6 +289,7 @@
     const FONT = 'normal 32px Arial, Helvetica, sans-serif';
 
     const textInput = document.getElementById('textInput');
+    const emailNameInput = document.getElementById('emailNameInput');
     const downloadBtn = document.getElementById('downloadBtn');
     const preview = document.getElementById('preview');
     const previewGrid = document.getElementById('previewGrid');
@@ -279,7 +297,7 @@
     const defaultStyleInputs = document.querySelectorAll('input[name="defaultStyle"]');
     const defaultVariantInputs = document.querySelectorAll('input[name="defaultVariant"]');
     const wrap = document.querySelector('.wrap');
-    const TIP_HTML = 'Tip: you can still pass one value with <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal</code> or multiple lines with <code>?texts=First%0ASecond&amp;styles=Blue,White&amp;sizes=Normal,4-COL</code>. For a UI-free asset view, use <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal&amp;view=asset</code>. Downloads are named like <code>CTA_your-text.png</code>, with duplicates becoming <code>CTA_your-text_1.png</code> and so on.';
+    const TIP_HTML = 'Tip: you can still pass one value with <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal</code> or multiple lines with <code>?texts=First%0ASecond&amp;styles=Blue,White&amp;sizes=Normal,3-COL</code>. For a UI-free asset view, use <code>?text=Hello%20World&amp;style=Blue&amp;size=Normal&amp;view=asset</code>. Downloads are named like <code>CTA_your-text.png</code> or <code>email-name_CTA_your-text.png</code>, with duplicates becoming <code>_1</code>, <code>_2</code>, and so on.';
     const CRC32_TABLE = (() => {
       const table = new Uint32Array(256);
 
@@ -408,12 +426,22 @@
     }
 
     function normalizeVariant(variant) {
+      if (variant === '3-COL') {
+        return '3-COL';
+      }
+
       return variant === '4-COL' ? '4-COL' : 'Normal';
     }
 
     function getAssetDimensions(variant) {
+      const normalizedVariant = normalizeVariant(variant);
+
       return {
-        width: normalizeVariant(variant) === '4-COL' ? FOUR_COL_WIDTH : NORMAL_WIDTH,
+        width: normalizedVariant === '4-COL'
+          ? FOUR_COL_WIDTH
+          : normalizedVariant === '3-COL'
+            ? THREE_COL_WIDTH
+            : NORMAL_WIDTH,
         height: HEIGHT
       };
     }
@@ -500,7 +528,7 @@
       return assetState;
     }
 
-    function sanitizeFilename(text) {
+    function sanitizeFilename(text, fallback = 'asset') {
       const normalized = text.normalize('NFD');
       let cleaned = '';
       let previousWasHyphen = false;
@@ -536,19 +564,31 @@
         cleaned = cleaned.slice(0, -1);
       }
 
-      return cleaned || 'asset';
+      return cleaned || fallback;
+    }
+
+    function getEmailNamePrefix() {
+      const sanitizedEmailName = sanitizeFilename(emailNameInput.value.trim(), '');
+      return sanitizedEmailName ? sanitizedEmailName + '_' : '';
     }
 
     function buildFilename(text, counts) {
+      const emailNamePrefix = getEmailNamePrefix();
       const sanitizedText = sanitizeFilename(text.trim());
-      const currentCount = counts.get(sanitizedText) || 0;
-      counts.set(sanitizedText, currentCount + 1);
+      const baseName = emailNamePrefix + 'CTA_' + sanitizedText;
+      const currentCount = counts.get(baseName) || 0;
+      counts.set(baseName, currentCount + 1);
 
       if (currentCount === 0) {
-        return 'CTA_' + sanitizedText + '.png';
+        return baseName + '.png';
       }
 
-      return 'CTA_' + sanitizedText + '_' + currentCount + '.png';
+      return baseName + '_' + currentCount + '.png';
+    }
+
+    function buildZipFilename() {
+      const emailNamePrefix = getEmailNamePrefix();
+      return emailNamePrefix + 'CTA_assets.zip';
     }
 
     function triggerDownload(canvas, filename) {
@@ -771,7 +811,7 @@
       variantSelect.className = 'assetStyleSelect';
       variantSelect.setAttribute('aria-label', 'Choose width for ' + asset.text);
 
-      ['Normal', '4-COL'].forEach((variant) => {
+      ['Normal', '3-COL', '4-COL'].forEach((variant) => {
         const option = document.createElement('option');
         option.value = variant;
         option.textContent = variant;
@@ -863,7 +903,7 @@
         }
 
         const zipBlob = await createZipBlob(files);
-        downloadBlob(zipBlob, 'CTA_assets.zip');
+        downloadBlob(zipBlob, buildZipFilename());
       } catch (error) {
         window.alert('Unable to create ZIP file.');
       } finally {
@@ -920,6 +960,7 @@
     }
 
     textInput.addEventListener('input', () => renderAll());
+    emailNameInput.addEventListener('input', () => renderAll());
     downloadBtn.addEventListener('click', () => {
       downloadAllPNGs();
     });
