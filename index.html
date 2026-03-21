@@ -572,10 +572,12 @@
       return sanitizedEmailName ? sanitizedEmailName + '_' : '';
     }
 
-    function buildFilename(text, counts) {
+    function buildFilename(text, variant, counts) {
       const emailNamePrefix = getEmailNamePrefix();
       const sanitizedText = sanitizeFilename(text.trim());
-      const baseName = emailNamePrefix + 'CTA_' + sanitizedText;
+      const normalizedVariant = normalizeVariant(variant);
+      const sizeSegment = normalizedVariant === 'Normal' ? '' : normalizedVariant + '_';
+      const baseName = emailNamePrefix + 'CTA_' + sizeSegment + sanitizedText;
       const currentCount = counts.get(baseName) || 0;
       counts.set(baseName, currentCount + 1);
 
@@ -823,6 +825,7 @@
         asset.variant = normalizeVariant(variantSelect.value);
         const nextColors = drawAsset(canvas, asset.text, asset.style, asset.variant);
         canvasWrap.style.background = nextColors.previewBg;
+        renderAll();
       });
 
       assetVariantRow.appendChild(assetVariantLabel);
@@ -867,7 +870,7 @@
       }
 
       const assets = assetsToRender.map((asset) => {
-        const filename = buildFilename(asset.text, counts);
+        const filename = buildFilename(asset.text, asset.variant, counts);
         const previewAsset = createPreviewCard(asset, filename);
         previewGrid.appendChild(previewAsset.card);
         return {
