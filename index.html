@@ -242,7 +242,7 @@
   <div class="wrap">
     <h1>Email CTA PNG Asset Generator</h1>
     <p>
-      Creates CTA PNGs in Normal (520×108), 3-COL (384×108), or 4-COL (284×108). Add one line per asset, choose the style and width on each generated card, then download the whole batch as a ZIP.
+      Creates CTA PNGs in Normal (520×108), 3-COL (384×108), Wide 4-COL (284×108), or Narrow 4-COL (276×108). Add one line per asset, choose the style and width on each generated card, then download the whole batch as a ZIP.
     </p>
 
     <div class="controls">
@@ -263,7 +263,8 @@
       <span>Default width for new lines:</span>
       <label><input type="radio" name="defaultVariant" value="Normal" checked /> Normal</label>
       <label><input type="radio" name="defaultVariant" value="3-COL" /> 3-COL</label>
-      <label><input type="radio" name="defaultVariant" value="4-COL" /> 4-COL</label>
+      <label><input type="radio" name="defaultVariant" value="Wide 4-COL" /> Wide 4-COL</label>
+      <label><input type="radio" name="defaultVariant" value="Narrow 4-COL" /> Narrow 4-COL</label>
     </div>
 
     <div class="preview" id="preview">
@@ -278,7 +279,8 @@
   <script>
     const NORMAL_WIDTH = 520;
     const THREE_COL_WIDTH = 384;
-    const FOUR_COL_WIDTH = 284;
+    const WIDE_FOUR_COL_WIDTH = 284;
+    const NARROW_FOUR_COL_WIDTH = 276;
     const HEIGHT = 108;
     const PREVIEW_HEIGHT = 54;
     const RADIUS = 20;
@@ -430,18 +432,21 @@
         return '3-COL';
       }
 
-      return variant === '4-COL' ? '4-COL' : 'Normal';
+      if (variant === 'Narrow 4-COL') return 'Narrow 4-COL';
+      return variant === 'Wide 4-COL' ? 'Wide 4-COL' : 'Normal';
     }
 
     function getAssetDimensions(variant) {
       const normalizedVariant = normalizeVariant(variant);
 
       return {
-        width: normalizedVariant === '4-COL'
-          ? FOUR_COL_WIDTH
-          : normalizedVariant === '3-COL'
-            ? THREE_COL_WIDTH
-            : NORMAL_WIDTH,
+        width: normalizedVariant === 'Wide 4-COL'
+          ? WIDE_FOUR_COL_WIDTH
+          : normalizedVariant === 'Narrow 4-COL'
+            ? NARROW_FOUR_COL_WIDTH
+            : normalizedVariant === '3-COL'
+              ? THREE_COL_WIDTH
+              : NORMAL_WIDTH,
         height: HEIGHT
       };
     }
@@ -576,7 +581,7 @@
       const emailNamePrefix = getEmailNamePrefix();
       const sanitizedText = sanitizeFilename(text.trim());
       const normalizedVariant = normalizeVariant(variant);
-      const sizeSegment = normalizedVariant === 'Normal' ? '' : normalizedVariant + '_';
+      const sizeSegment = normalizedVariant === 'Normal' ? '' : normalizedVariant.replace(/ /g, '-') + '_';
       const baseName = emailNamePrefix + 'CTA_' + sizeSegment + sanitizedText;
       const currentCount = counts.get(baseName) || 0;
       counts.set(baseName, currentCount + 1);
@@ -813,7 +818,7 @@
       variantSelect.className = 'assetStyleSelect';
       variantSelect.setAttribute('aria-label', 'Choose width for ' + asset.text);
 
-      ['Normal', '3-COL', '4-COL'].forEach((variant) => {
+      ['Normal', '3-COL', 'Wide 4-COL', 'Narrow 4-COL'].forEach((variant) => {
         const option = document.createElement('option');
         option.value = variant;
         option.textContent = variant;
